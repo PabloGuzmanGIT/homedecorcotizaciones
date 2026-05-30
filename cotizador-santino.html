@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotizador — Santino Decoración & Melamina</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --surface2: #f0ede6;
+      --border: #ddd9cf;
+      --text: #1a1a1a;
+      --text2: #5a5a5a;
+      --text3: #9a9a9a;
+      --accent: #1a1a2e;
+      --gold: #e8c96d;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .page { max-width: 820px; margin: 0 auto; }
+
+    /* HEADER */
+    .app-header {
+      display: flex; align-items: center; gap: 18px;
+      background: var(--accent);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .logo-box {
+      width: 54px; height: 54px;
+      background: rgba(232,201,109,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(232,201,109,0.3);
+    }
+    .logo-box span { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 600; color: var(--gold); }
+    .header-info h1 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--gold); }
+    .header-info p { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 3px; }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 1rem;
+    }
+
+    /* GRID */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media(max-width:600px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+    /* FIELDS */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; color: var(--text2); font-weight: 500; }
+    .field input, .field select, .field textarea {
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field input[readonly] { background: var(--surface2); cursor: default; }
+
+    /* ITEMS TABLE */
+    .items-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text3);
+      padding: 6px 8px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:hover td { background: #fafaf8; }
+    tbody td { padding: 5px 4px; vertical-align: middle; }
+    .td-num { width: 5%; text-align: center; color: var(--text3); font-size: 12px; }
+    .td-desc { width: 38%; }
+    .td-qty { width: 9%; }
+    .td-unit { width: 13%; }
+    .td-price { width: 17%; }
+    .td-total { width: 14%; text-align: right; font-weight: 500; padding-right: 6px; }
+    .td-del { width: 4%; text-align: center; }
+    table input {
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      padding: 5px 7px; width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff; color: var(--text);
+    }
+    table input:focus { outline: none; border-color: var(--accent); }
+    table select {
+      font-family: 'DM Sans', sans-serif; font-size: 12px;
+      padding: 5px 5px; width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff; color: var(--text);
+    }
+    .btn-del {
+      background: none; border: none; color: #bbb;
+      cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .btn-del:hover { color: #c0392b; background: #fef2f2; }
+
+    /* TOTALS */
+    .totals-block { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
+    .total-row { display: flex; gap: 28px; font-size: 13px; }
+    .total-row .lbl { color: var(--text2); min-width: 90px; text-align: right; }
+    .total-row .val { min-width: 100px; text-align: right; font-weight: 500; }
+    .total-row.grand { padding-top: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
+    .total-row.grand .lbl { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--text); }
+    .total-row.grand .val { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--accent); }
+
+    /* TERMS */
+    .tnc-box {
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 12px; color: var(--text2);
+      line-height: 1.8;
+      border: 1px solid var(--border);
+    }
+    .tnc-box li { margin-left: 16px; margin-bottom: 2px; }
+
+    /* BUTTONS */
+    .action-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-primary {
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      padding: 11px 22px;
+      background: var(--accent); color: var(--gold);
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      padding: 11px 22px;
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: var(--surface2); }
+    .btn-add {
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      padding: 7px 14px;
+      background: var(--accent); color: var(--gold);
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+    .btn-add:hover { opacity: 0.88; }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--accent); color: var(--gold);
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.3s; pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* FOOTER */
+    .app-footer {
+      text-align: center; font-size: 11px; color: var(--text3);
+      margin-top: 2rem; padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="logo-box"><span>S</span></div>
+    <div class="header-info">
+      <h1>Santino — Decoración & Melamina</h1>
+      <p>Jr. Manco Cápac 217, Ayacucho, Perú &nbsp;·&nbsp; WhatsApp: +51 XXX XXX XXX</p>
+    </div>
+  </div>
+
+  <!-- DATOS CLIENTE -->
+  <div class="card">
+    <div class="card-title">Datos del cliente</div>
+    <div class="grid2">
+      <div class="field"><label>Nombre / Empresa</label><input id="cli-nombre" type="text" placeholder="Ej: Juan Pérez / Muebles San Martín"></div>
+      <div class="field"><label>DNI / RUC</label><input id="cli-doc" type="text" placeholder="Ej: 43200000 / 20601234567"></div>
+      <div class="field"><label>Teléfono</label><input id="cli-tel" type="text" placeholder="+51 900 000 000"></div>
+      <div class="field"><label>Correo electrónico</label><input id="cli-email" type="text" placeholder="cliente@correo.com"></div>
+    </div>
+  </div>
+
+  <!-- DATOS COTIZACIÓN -->
+  <div class="card">
+    <div class="card-title">Datos de cotización</div>
+    <div class="grid3">
+      <div class="field"><label>N° cotización</label><input id="cot-num" type="text" readonly></div>
+      <div class="field"><label>Fecha emisión</label><input id="cot-fecha" type="date"></div>
+      <div class="field"><label>Válida hasta</label><input id="cot-vence" type="date"></div>
+      <div class="field"><label>Moneda</label>
+        <select id="cot-moneda" onchange="recalc()">
+          <option value="S/">S/ Soles (PEN)</option>
+          <option value="$">$ Dólares (USD)</option>
+        </select>
+      </div>
+      <div class="field"><label>IGV</label>
+        <select id="cot-igv" onchange="recalc()">
+          <option value="0">Sin IGV (precios incluyen IGV)</option>
+          <option value="18">+ 18% IGV</option>
+        </select>
+      </div>
+      <div class="field"><label>Forma de pago</label>
+        <select id="cot-pago">
+          <option>50% adelanto / 50% contra entrega</option>
+          <option>100% adelanto</option>
+          <option>Contado al recibir</option>
+          <option>Crédito 15 días</option>
+          <option>Crédito 30 días</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÍTEMS -->
+  <div class="card">
+    <div class="items-header">
+      <div class="card-title" style="margin:0">Descripción de productos / servicios</div>
+      <button class="btn-add" onclick="addRow()">+ Agregar ítem</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="td-num">#</th>
+            <th class="td-desc">Descripción</th>
+            <th class="td-qty">Cant.</th>
+            <th class="td-unit">Unidad</th>
+            <th class="td-price">P. Unitario</th>
+            <th class="td-total">Total</th>
+            <th class="td-del"></th>
+          </tr>
+        </thead>
+        <tbody id="items-body"></tbody>
+      </table>
+    </div>
+    <div class="totals-block">
+      <div class="total-row"><span class="lbl">Subtotal</span><span class="val" id="t-sub">S/ 0.00</span></div>
+      <div class="total-row" id="igv-row" style="display:none"><span class="lbl">IGV 18%</span><span class="val" id="t-igv">S/ 0.00</span></div>
+      <div class="total-row grand"><span class="lbl">TOTAL</span><span class="val" id="t-total">S/ 0.00</span></div>
+    </div>
+  </div>
+
+  <!-- NOTAS -->
+  <div class="card">
+    <div class="card-title">Observaciones / Notas adicionales</div>
+    <div class="field">
+      <textarea id="cot-notas" placeholder="Ej: Medidas exactas a coordinar, color de melamina según muestra aprobada, tiempo de entrega 15 días hábiles tras adelanto confirmado..."></textarea>
+    </div>
+  </div>
+
+  <!-- TÉRMINOS -->
+  <div class="card">
+    <div class="card-title">Términos y condiciones</div>
+    <div class="tnc-box">
+      <ul>
+        <li>La presente cotización tiene validez según la fecha indicada. Pasada esa fecha los precios pueden variar sin previo aviso.</li>
+        <li>Los precios incluyen IGV según lo indicado. No incluye instalación ni traslado salvo pacto expreso.</li>
+        <li>El plazo de entrega se contabiliza desde la confirmación del adelanto o pago total.</li>
+        <li>Medidas, colores y acabados de melamina deben ser confirmados por escrito antes de iniciar la fabricación.</li>
+        <li>No se aceptan devoluciones de productos fabricados a medida o bajo pedido especial.</li>
+        <li>Modificaciones una vez iniciada la producción pueden generar costos adicionales.</li>
+        <li>El flete e instalación en domicilio se cotiza por separado según destino y acceso.</li>
+        <li>La garantía cubre defectos de fabricación por 6 meses desde la entrega. No cubre daños por uso inadecuado.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="action-bar" style="margin-bottom:2rem">
+    <button class="btn-primary" onclick="generatePDF()">⬇ Descargar PDF</button>
+    <button class="btn-secondary" onclick="previewPDF()">👁 Vista previa</button>
+    <button class="btn-secondary" onclick="clearForm()">↺ Nueva cotización</button>
+  </div>
+
+  <div class="app-footer">
+    Santino — Decoración & Muebles de Melamina &nbsp;·&nbsp; Ayacucho, Perú
+  </div>
+</div>
+
+<div id="toast">✓ PDF generado correctamente</div>
+
+<script>
+let rowCount = 0;
+
+function pad(n){ return String(n).padStart(3,'0'); }
+function genNum(){
+  const d = new Date();
+  return 'COT-' + d.getFullYear() + pad(d.getMonth()+1) + '-' + pad(Math.floor(Math.random()*900)+100);
+}
+
+function initDates(){
+  const today = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('cot-fecha').value = fmt(today);
+  const v = new Date(today); v.setDate(today.getDate()+15);
+  document.getElementById('cot-vence').value = fmt(v);
+  document.getElementById('cot-num').value = genNum();
+}
+
+function sym(){ return document.getElementById('cot-moneda').value; }
+
+function addRow(desc='', qty=1, unit='und', price=0){
+  rowCount++;
+  const id = rowCount;
+  const tbody = document.getElementById('items-body');
+  const tr = document.createElement('tr');
+  tr.id = 'row-' + id;
+  tr.innerHTML = `
+    <td class="td-num" style="color:#bbb;font-size:12px">${id}</td>
+    <td class="td-desc"><input type="text" value="${desc}" placeholder="Ej: Mueble TV melamina nogal 1.80m x 0.50m"></td>
+    <td class="td-qty"><input type="number" value="${qty}" min="0.01" step="0.01" style="text-align:center" oninput="recalcRow(${id})"></td>
+    <td class="td-unit">
+      <select>
+        <option ${unit=='und'?'selected':''}>und</option>
+        <option ${unit=='m²'?'selected':''}>m²</option>
+        <option ${unit=='ml'?'selected':''}>ml</option>
+        <option ${unit=='juego'?'selected':''}>juego</option>
+        <option ${unit=='servicio'?'selected':''}>servicio</option>
+        <option ${unit=='kg'?'selected':''}>kg</option>
+        <option ${unit=='pza'?'selected':''}>pza</option>
+      </select>
+    </td>
+    <td class="td-price"><input type="number" value="${price}" min="0" step="0.01" style="text-align:right" oninput="recalcRow(${id})"></td>
+    <td class="td-total" id="row-total-${id}" style="text-align:right;font-weight:500;padding-right:6px">${sym()} 0.00</td>
+    <td class="td-del"><button class="btn-del" onclick="delRow(${id})" title="Eliminar">&times;</button></td>
+  `;
+  tbody.appendChild(tr);
+  recalcRow(id);
+}
+
+function delRow(id){
+  const r = document.getElementById('row-'+id);
+  if(r) r.remove();
+  recalc();
+}
+
+function recalcRow(id){
+  const row = document.getElementById('row-'+id);
+  if(!row) return;
+  const inputs = row.querySelectorAll('input[type="number"]');
+  const qty = parseFloat(inputs[0].value)||0;
+  const price = parseFloat(inputs[1].value)||0;
+  document.getElementById('row-total-'+id).textContent = sym() + ' ' + (qty*price).toFixed(2);
+  recalc();
+}
+
+function recalc(){
+  let sub = 0;
+  document.querySelectorAll('#items-body tr').forEach(row => {
+    const inputs = row.querySelectorAll('input[type="number"]');
+    if(inputs.length >= 2) sub += (parseFloat(inputs[0].value)||0) * (parseFloat(inputs[1].value)||0);
+  });
+  const igvRate = parseInt(document.getElementById('cot-igv').value);
+  const igvAmt = sub * igvRate / 100;
+  const total = sub + igvAmt;
+  const s = sym();
+  document.getElementById('t-sub').textContent = s + ' ' + sub.toFixed(2);
+  document.getElementById('t-igv').textContent = s + ' ' + igvAmt.toFixed(2);
+  document.getElementById('t-total').textContent = s + ' ' + total.toFixed(2);
+  document.getElementById('igv-row').style.display = igvRate > 0 ? 'flex' : 'none';
+}
+
+function getFormData(){
+  const rows = [];
+  document.querySelectorAll('#items-body tr').forEach(row => {
+    const desc = row.querySelectorAll('input')[0]?.value || '';
+    const qty = parseFloat(row.querySelectorAll('input[type="number"]')[0]?.value)||0;
+    const unit = row.querySelector('select')?.value || 'und';
+    const price = parseFloat(row.querySelectorAll('input[type="number"]')[1]?.value)||0;
+    rows.push({ desc, qty, unit, price, total: qty*price });
+  });
+  const igvRate = parseInt(document.getElementById('cot-igv').value);
+  const sub = rows.reduce((a,r)=>a+r.total, 0);
+  const igvAmt = sub * igvRate / 100;
+  return {
+    cotNum: document.getElementById('cot-num').value,
+    fecha: document.getElementById('cot-fecha').value,
+    vence: document.getElementById('cot-vence').value,
+    moneda: document.getElementById('cot-moneda').value,
+    pago: document.getElementById('cot-pago').value,
+    igvRate, igvAmt, sub, total: sub + igvAmt,
+    cliente: {
+      nombre: document.getElementById('cli-nombre').value,
+      doc: document.getElementById('cli-doc').value,
+      tel: document.getElementById('cli-tel').value,
+      email: document.getElementById('cli-email').value,
+    },
+    notas: document.getElementById('cot-notas').value,
+    rows
+  };
+}
+
+function buildPDF(data){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+  const W = 210, pad = 16;
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26,26,46);
+  doc.rect(0,0,W,40,'F');
+  doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(232,201,109);
+  doc.text('Santino', pad, 17);
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(200,200,220);
+  doc.text('Decoración & Muebles de Melamina', pad, 24);
+  doc.text('Jr. Manco Cápac 217, Ayacucho, Perú', pad, 30);
+  doc.text('WhatsApp: +51 XXX XXX XXX', pad, 36);
+  doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(232,201,109);
+  doc.text('COTIZACIÓN', W-pad, 17, {align:'right'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(200,200,220);
+  doc.text(data.cotNum, W-pad, 24, {align:'right'});
+  doc.text('Fecha: ' + data.fecha, W-pad, 30, {align:'right'});
+  doc.text('Válida hasta: ' + data.vence, W-pad, 36, {align:'right'});
+  y = 50;
+
+  // Cliente
+  doc.setFillColor(244,242,236);
+  doc.rect(pad, y, W-pad*2, 28, 'F');
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60);
+  doc.text('DATOS DEL CLIENTE', pad+4, y+7);
+  doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+  doc.text('Nombre / Empresa: ' + (data.cliente.nombre||'—'), pad+4, y+14);
+  doc.text('DNI / RUC: ' + (data.cliente.doc||'—'), pad+4, y+20);
+  doc.text('Teléfono: ' + (data.cliente.tel||'—'), W/2+4, y+14);
+  doc.text('Email: ' + (data.cliente.email||'—'), W/2+4, y+20);
+  doc.setTextColor(80,80,80);
+  doc.text('Forma de pago: ' + data.pago, pad+4, y+27);
+  y += 36;
+
+  // Items table
+  const tableBody = data.rows.map((r,i) => [
+    i+1,
+    r.desc || '—',
+    r.qty.toFixed(2),
+    r.unit,
+    data.moneda + ' ' + r.price.toFixed(2),
+    data.moneda + ' ' + r.total.toFixed(2)
+  ]);
+  doc.autoTable({
+    startY: y,
+    head: [['#','Descripción','Cant.','Unidad','P. Unitario','Total']],
+    body: tableBody.length ? tableBody : [[1,'—','1','und',data.moneda+' 0.00',data.moneda+' 0.00']],
+    styles: { fontSize: 8, cellPadding: 3.5, font: 'helvetica' },
+    headStyles: { fillColor: [26,26,46], textColor: [232,201,109], fontStyle: 'bold', halign: 'center' },
+    columnStyles: {
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 78 },
+      2: { cellWidth: 14, halign: 'center' },
+      3: { cellWidth: 18, halign: 'center' },
+      4: { cellWidth: 30, halign: 'right' },
+      5: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+    },
+    alternateRowStyles: { fillColor: [250,249,246] },
+    margin: { left: pad, right: pad },
+    theme: 'striped'
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Totals
+  const tW = 72, tX = W - pad - tW;
+  let bH = data.igvRate > 0 ? 34 : 24;
+  doc.setFillColor(244,242,236); doc.rect(tX, y, tW, bH, 'F');
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+  doc.text('Subtotal:', tX+4, y+8);
+  doc.text(data.moneda+' '+data.sub.toFixed(2), tX+tW-4, y+8, {align:'right'});
+  let ty = 8;
+  if(data.igvRate > 0){
+    ty += 8;
+    doc.text('IGV 18%:', tX+4, y+ty);
+    doc.text(data.moneda+' '+data.igvAmt.toFixed(2), tX+tW-4, y+ty, {align:'right'});
+  }
+  ty += 10;
+  doc.setDrawColor(26,26,46); doc.setLineWidth(0.3);
+  doc.line(tX+4, y+ty-3, tX+tW-4, y+ty-3);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26,26,46);
+  doc.text('TOTAL', tX+4, y+ty+4);
+  doc.text(data.moneda+' '+data.total.toFixed(2), tX+tW-4, y+ty+4, {align:'right'});
+  y += bH + 12;
+
+  // Notas
+  if(data.notas.trim()){
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(50,50,50);
+    doc.text('OBSERVACIONES:', pad, y); y += 5;
+    doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+    const lines = doc.splitTextToSize(data.notas, W-pad*2);
+    doc.text(lines, pad, y); y += lines.length*4.5 + 8;
+  }
+
+  // T&C
+  const tnc = [
+    'La cotización tiene validez hasta la fecha indicada. Pasada esa fecha los precios pueden variar sin previo aviso.',
+    'Los precios incluyen IGV según lo indicado. Instalación y traslado se cotiza por separado salvo pacto expreso.',
+    'El plazo de entrega se contabiliza desde la confirmación del adelanto o pago total.',
+    'Medidas, colores y acabados deben ser confirmados por escrito antes de iniciar la fabricación.',
+    'No se aceptan devoluciones de productos fabricados a medida o bajo pedido especial.',
+    'Modificaciones una vez iniciada la producción pueden generar costos adicionales.',
+    'Garantía: 6 meses contra defectos de fabricación desde la entrega. No cubre daños por uso inadecuado.'
+  ];
+  const tncH = tnc.length * 5.5 + 12;
+  doc.setFillColor(244,242,236); doc.rect(pad, y, W-pad*2, tncH, 'F');
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(50,50,50);
+  doc.text('TÉRMINOS Y CONDICIONES', pad+4, y+7); y += 13;
+  doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
+  tnc.forEach((t, i) => {
+    doc.text('• ' + t, pad+4, y + i*5.5, { maxWidth: W-pad*2-8 });
+  });
+  y += tnc.length * 5.5 + 10;
+
+  // Footer
+  doc.setDrawColor(200,195,185); doc.setLineWidth(0.2);
+  doc.line(pad, y, W-pad, y); y += 5;
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(160,155,145);
+  doc.text('Santino — Jr. Manco Cápac 217, Ayacucho, Perú | WhatsApp: +51 XXX XXX XXX', W/2, y, {align:'center'});
+
+  return doc;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+function generatePDF(){
+  const data = getFormData();
+  const doc = buildPDF(data);
+  doc.save(data.cotNum + '_Santino.pdf');
+  showToast('✓ PDF descargado: ' + data.cotNum);
+}
+
+function previewPDF(){
+  const data = getFormData();
+  const doc = buildPDF(data);
+  window.open(doc.output('bloburl'), '_blank');
+}
+
+function clearForm(){
+  ['cli-nombre','cli-doc','cli-tel','cli-email','cot-notas'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('items-body').innerHTML='';
+  rowCount = 0;
+  document.getElementById('cot-num').value = genNum();
+  initDates();
+  addRow('',1,'und',0);
+  recalc();
+}
+
+// Init
+initDates();
+addRow('Mueble bajo TV en melamina nogal 18mm — 1.80m × 0.50m', 1, 'und', 850);
+addRow('Estante flotante 3 repisas en melamina blanco brillante', 2, 'und', 380);
+addRow('', 1, 'und', 0);
+recalc();
+</script>
+</body>
+</html>
