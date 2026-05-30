@@ -199,6 +199,74 @@
       border-top: 1px solid var(--border);
     }
     hr.divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* FOTOS */
+    .photos-hint { font-size: 12px; color: var(--text3); margin-bottom: 12px; line-height: 1.5; }
+    .photos-upload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .btn-photo-add {
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      padding: 9px 16px; background: var(--surface2); color: var(--text);
+      border: 1px dashed var(--border); border-radius: var(--radius-sm);
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn-photo-add:hover { border-color: var(--accent); background: #fff; }
+    .btn-photo-add input { display: none; }
+    .photos-count { font-size: 12px; color: var(--text3); }
+    .photos-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .photo-thumb {
+      position: relative; aspect-ratio: 1;
+      border-radius: var(--radius-sm); overflow: hidden;
+      border: 1px solid var(--border); background: var(--surface2);
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-thumb .btn-photo-del {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px; border: none; border-radius: 4px;
+      background: rgba(26,26,46,0.75); color: #fff;
+      font-size: 14px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .photo-thumb .btn-photo-del:hover { background: #c0392b; }
+    #photos-card.photos-drop-active {
+      outline: 2px dashed var(--gold);
+      outline-offset: 4px;
+      background: #fffef8;
+    }
+    .photos-paste-zone {
+      margin-bottom: 14px; padding: 18px 16px; text-align: center;
+      border: 2px dashed var(--border); border-radius: var(--radius-sm);
+      background: var(--surface2); cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, outline 0.15s;
+    }
+    .photos-paste-zone:hover,
+    .photos-paste-zone:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #fffef8;
+    }
+    .photos-paste-zone:focus-visible {
+      box-shadow: 0 0 0 3px rgba(232,201,109,0.45);
+    }
+    .photos-paste-zone p { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.5; }
+    .photos-paste-zone .photos-paste-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+    .photos-paste-zone kbd {
+      font-size: 11px; padding: 2px 6px; border-radius: 4px;
+      border: 1px solid var(--border); background: #fff;
+    }
+    .btn-photo-paste {
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      padding: 9px 16px; background: var(--accent); color: var(--gold);
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; margin-right: 8px;
+    }
+    .btn-photo-paste:hover { opacity: 0.9; }
+    .photos-limit-note {
+      font-size: 11px; color: var(--text3); margin-top: 10px; line-height: 1.45;
+    }
   </style>
 </head>
 <body>
@@ -292,6 +360,28 @@
     </div>
   </div>
 
+  <!-- FOTOS -->
+  <div class="card" id="photos-card">
+    <div class="card-title">Fotos de referencia / muebles</div>
+    <p class="photos-hint">Flujo rápido: en Google/Pinterest → clic derecho en la foto → <strong>Copiar imagen</strong> → pega aquí abajo. Máx. 8 fotos.</p>
+
+    <div class="photos-paste-zone" id="photos-paste-zone" tabindex="0" title="Clic y luego Cmd+V o Ctrl+V">
+      <p><strong>Clic en este recuadro</strong> y pega <kbd>Cmd+V</kbd> o <kbd>Ctrl+V</kbd></p>
+      <p class="photos-paste-sub">También puedes arrastrar la imagen desde el navegador hasta esta tarjeta</p>
+    </div>
+
+    <div class="photos-upload">
+      <button type="button" class="btn-photo-paste" onclick="pasteFromClipboard()">📋 Pegar imagen</button>
+      <label class="btn-photo-add">
+        + Archivo del equipo
+        <input type="file" id="cot-fotos-input" accept="image/*" multiple onchange="handlePhotoSelect(event)">
+      </label>
+      <span class="photos-count" id="photos-count">0 / 8</span>
+    </div>
+    <p class="photos-limit-note">En la web desplegada (GitHub Pages) el pegado funciona sin servidor. <strong>No sirve</strong> copiar solo el enlace/URL de la foto — el navegador no permite descargarla por seguridad. Usa siempre <em>Copiar imagen</em>.</p>
+    <div class="photos-grid" id="photos-grid"></div>
+  </div>
+
   <!-- TÉRMINOS -->
   <div class="card">
     <div class="card-title">Términos y condiciones</div>
@@ -325,6 +415,355 @@
 
 <script>
 let rowCount = 0;
+const MAX_PHOTOS = 8;
+const cotImages = [];
+let photoIdSeq = 0;
+const PDF_PAGE_BOTTOM = 287;
+
+function updatePhotosCount(){
+  document.getElementById('photos-count').textContent = cotImages.length + ' / ' + MAX_PHOTOS;
+}
+
+function renderPhotoPreviews(){
+  const grid = document.getElementById('photos-grid');
+  grid.innerHTML = '';
+  cotImages.forEach(img => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `
+      <img src="${img.previewUrl}" alt="Referencia">
+      <button type="button" class="btn-photo-del" onclick="removePhoto(${img.id})" title="Quitar">&times;</button>
+    `;
+    grid.appendChild(div);
+  });
+  updatePhotosCount();
+}
+
+function revokePreviewUrl(url){
+  if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+}
+
+function removePhoto(id){
+  const idx = cotImages.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const img = cotImages[idx];
+  revokePreviewUrl(img.previewUrl);
+  cotImages.splice(idx, 1);
+  renderPhotoPreviews();
+}
+
+function clearPhotos(){
+  cotImages.forEach(img => revokePreviewUrl(img.previewUrl));
+  cotImages.length = 0;
+  document.getElementById('cot-fotos-input').value = '';
+  renderPhotoPreviews();
+}
+
+function getImageFilesFromDataTransfer(dt){
+  if (!dt) return [];
+  const seen = new Set();
+  const files = [];
+  const add = f => {
+    if (!f || !f.type.startsWith('image/') || seen.has(f)) return;
+    seen.add(f);
+    files.push(f);
+  };
+  if (dt.files) Array.from(dt.files).forEach(add);
+  if (dt.items) {
+    Array.from(dt.items).forEach(item => {
+      if (item.kind === 'file' && item.type.startsWith('image/')) add(item.getAsFile());
+    });
+  }
+  return files;
+}
+
+function getImageUrlFromDataTransfer(dt){
+  if (!dt) return null;
+  const uri = (dt.getData('text/uri-list') || dt.getData('text/plain') || '').split('\n')[0].trim();
+  if (/^https?:\/\//i.test(uri)) return uri;
+  const html = dt.getData('text/html') || '';
+  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (m && /^https?:\/\//i.test(m[1])) return m[1];
+  return null;
+}
+
+function isFormField(el){
+  if (!el || el.isContentEditable) return !!el?.isContentEditable;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+function compressFromBlob(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.onload = () => {
+      const el = new Image();
+      el.onerror = () => reject(new Error('Formato de imagen no válido'));
+      el.onload = () => {
+        const MAX = 1200;
+        let w = el.width, h = el.height;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(el, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve({
+          dataUrl, format: 'JPEG', width: w, height: h,
+          previewUrl: URL.createObjectURL(blob)
+        });
+      };
+      el.src = reader.result;
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function addImageFromUrl(url){
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch');
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error('type');
+    await addImagesFromFiles([new File([blob], 'imagen.jpg', { type: blob.type || 'image/jpeg' })]);
+    return true;
+  } catch { /* intentar vía canvas */ }
+
+  return new Promise(resolve => {
+    const el = new Image();
+    el.crossOrigin = 'anonymous';
+    el.onerror = () => resolve(false);
+    el.onload = async () => {
+      try {
+        const MAX = 1200;
+        let w = el.width, h = el.height;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(el, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        photoIdSeq++;
+        cotImages.push({
+          id: photoIdSeq,
+          dataUrl, format: 'JPEG', width: w, height: h,
+          previewUrl: dataUrl
+        });
+        renderPhotoPreviews();
+        resolve(true);
+      } catch {
+        resolve(false);
+      }
+    };
+    el.src = url;
+  });
+}
+
+async function addImagesFromFiles(files){
+  const imageFiles = Array.from(files || []).filter(f => f && f.type.startsWith('image/'));
+  if (!imageFiles.length) return 0;
+
+  const slots = MAX_PHOTOS - cotImages.length;
+  if (slots <= 0) {
+    showToast('Máximo ' + MAX_PHOTOS + ' fotos por cotización');
+    return 0;
+  }
+  const toAdd = imageFiles.slice(0, slots);
+  if (imageFiles.length > slots) {
+    showToast('Solo se agregaron ' + slots + ' foto(s) (límite ' + MAX_PHOTOS + ')');
+  }
+
+  let added = 0;
+  for (const file of toAdd) {
+    try {
+      const compressed = await compressFromBlob(file);
+      photoIdSeq++;
+      cotImages.push({ id: photoIdSeq, ...compressed });
+      added++;
+    } catch {
+      showToast('No se pudo procesar: ' + (file.name || 'imagen'));
+    }
+  }
+  if (added) renderPhotoPreviews();
+  return added;
+}
+
+async function readImagesFromClipboardApi(){
+  if (!navigator.clipboard?.read) return [];
+  const files = [];
+  const items = await navigator.clipboard.read();
+  for (const item of items) {
+    for (const type of item.types) {
+      if (!type.startsWith('image/')) continue;
+      const blob = await item.getType(type);
+      const ext = type.split('/')[1] || 'png';
+      files.push(new File([blob], 'pegado.' + ext.replace('jpeg', 'jpg'), { type }));
+    }
+  }
+  return files;
+}
+
+async function ingestPhotoDataTransfer(dt, opts = {}){
+  const files = getImageFilesFromDataTransfer(dt);
+  if (files.length) {
+    const n = await addImagesFromFiles(files);
+    return n > 0 ? n : 0;
+  }
+
+  if (opts.imagesOnly) return 0;
+
+  const url = getImageUrlFromDataTransfer(dt);
+  if (url) {
+    const ok = await addImageFromUrl(url);
+    if (ok) return 1;
+    showToast('Esa web bloquea el enlace. Usa clic derecho → Copiar imagen → pegar aquí.');
+    return 0;
+  }
+  return 0;
+}
+
+async function handlePhotoPaste(e){
+  const dt = e.clipboardData;
+  if (!dt) return false;
+  const files = getImageFilesFromDataTransfer(dt);
+  const hasUrl = !files.length && !!getImageUrlFromDataTransfer(dt);
+  if (!files.length && !hasUrl) {
+    showToast('No hay imagen en el portapapeles. En la web: Copiar imagen (no el enlace).');
+    return false;
+  }
+  e.preventDefault();
+  const n = await ingestPhotoDataTransfer(dt);
+  if (n > 0) {
+    showToast(n === 1 ? '✓ Imagen pegada' : '✓ ' + n + ' imágenes pegadas');
+    return true;
+  }
+  return false;
+}
+
+async function pasteFromClipboard(){
+  if (cotImages.length >= MAX_PHOTOS) {
+    showToast('Máximo ' + MAX_PHOTOS + ' fotos por cotización');
+    return;
+  }
+  try {
+    const files = await readImagesFromClipboardApi();
+    if (files.length) {
+      const n = await addImagesFromFiles(files);
+      if (n > 0) {
+        showToast(n === 1 ? '✓ Imagen pegada' : '✓ ' + n + ' imágenes pegadas');
+        return;
+      }
+    }
+  } catch (err) {
+    if (err.name === 'NotAllowedError') {
+      document.getElementById('photos-paste-zone').focus();
+      showToast('Permite el portapapeles o haz clic en el recuadro y Cmd+V');
+      return;
+    }
+  }
+  document.getElementById('photos-paste-zone').focus();
+  showToast('Clic en el recuadro amarillo y pulsa Cmd+V / Ctrl+V');
+}
+
+async function handlePhotoSelect(ev){
+  const input = ev.target;
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (files.length) await addImagesFromFiles(files);
+}
+
+function initPhotoDropPaste(){
+  const zone = document.getElementById('photos-card');
+  const pasteZone = document.getElementById('photos-paste-zone');
+  let dragDepth = 0;
+
+  pasteZone.addEventListener('click', () => pasteZone.focus());
+
+  pasteZone.addEventListener('paste', e => {
+    handlePhotoPaste(e);
+  });
+
+  document.addEventListener('paste', async e => {
+    if (isFormField(e.target)) return;
+    if (e.target.closest('#photos-paste-zone')) return;
+    const files = getImageFilesFromDataTransfer(e.clipboardData);
+    if (!files.length) return;
+    e.preventDefault();
+    const n = await addImagesFromFiles(files);
+    if (n > 0) showToast(n === 1 ? '✓ Imagen pegada' : '✓ ' + n + ' imágenes pegadas');
+  });
+
+  zone.addEventListener('dragenter', e => {
+    e.preventDefault();
+    dragDepth++;
+    zone.classList.add('photos-drop-active');
+  });
+  zone.addEventListener('dragleave', e => {
+    e.preventDefault();
+    dragDepth--;
+    if (dragDepth <= 0) {
+      dragDepth = 0;
+      zone.classList.remove('photos-drop-active');
+    }
+  });
+  zone.addEventListener('dragover', e => e.preventDefault());
+  zone.addEventListener('drop', async e => {
+    e.preventDefault();
+    dragDepth = 0;
+    zone.classList.remove('photos-drop-active');
+    const n = await ingestPhotoDataTransfer(e.dataTransfer);
+    if (n > 0) showToast(n === 1 ? '✓ Imagen agregada' : '✓ ' + n + ' imágenes agregadas');
+    else showToast('Arrastra la imagen (no solo el enlace) o usa Copiar imagen → pegar');
+  });
+}
+
+function pdfEnsureSpace(doc, y, needH, pad){
+  if (y + needH > PDF_PAGE_BOTTOM) {
+    doc.addPage();
+    return pad + 10;
+  }
+  return y;
+}
+
+function pdfAddReferencePhotos(doc, data, y, W, pad){
+  if (!data.images || !data.images.length) return y;
+
+  const contentW = W - pad * 2;
+  const maxImgW = contentW;
+  const maxImgH = 100;
+
+  y = pdfEnsureSpace(doc, y, 12, pad);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('FOTOS DE REFERENCIA / MUEBLES', pad, y);
+  y += 8;
+
+  data.images.forEach((img, i) => {
+    const ratio = img.width / img.height;
+    let w = maxImgW, h = w / ratio;
+    if (h > maxImgH) { h = maxImgH; w = h * ratio; }
+
+    y = pdfEnsureSpace(doc, y, h + 10, pad);
+    const x = pad + (contentW - w) / 2;
+    doc.addImage(img.dataUrl, img.format, x, y, w, h);
+    y += h + 4;
+
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(140, 135, 125);
+    doc.text('Referencia ' + (i + 1), pad, y);
+    y += 6;
+  });
+  return y + 4;
+}
 
 function pad(n){ return String(n).padStart(3,'0'); }
 function genNum(){
@@ -430,7 +869,8 @@ function getFormData(){
       email: document.getElementById('cli-email').value,
     },
     notas: document.getElementById('cot-notas').value,
-    rows
+    rows,
+    images: cotImages.map(({ dataUrl, format, width, height }) => ({ dataUrl, format, width, height }))
   };
 }
 
@@ -530,7 +970,11 @@ function buildPDF(data){
     doc.text(lines, pad, y); y += lines.length*4.5 + 8;
   }
 
+  // Fotos de referencia
+  y = pdfAddReferencePhotos(doc, data, y, W, pad);
+
   // T&C
+  y = pdfEnsureSpace(doc, y, 7 * 5.5 + 25, pad);
   const tnc = [
     'La cotización tiene validez hasta la fecha indicada. Pasada esa fecha los precios pueden variar sin previo aviso.',
     'Los precios incluyen IGV según lo indicado. Instalación y traslado se cotiza por separado salvo pacto expreso.',
@@ -582,6 +1026,7 @@ function clearForm(){
   ['cli-nombre','cli-doc','cli-tel','cli-email','cot-notas'].forEach(id => document.getElementById(id).value='');
   document.getElementById('items-body').innerHTML='';
   rowCount = 0;
+  clearPhotos();
   document.getElementById('cot-num').value = genNum();
   initDates();
   addRow('',1,'und',0);
@@ -590,6 +1035,8 @@ function clearForm(){
 
 // Init
 initDates();
+updatePhotosCount();
+initPhotoDropPaste();
 addRow('Mueble bajo TV en melamina nogal 18mm — 1.80m × 0.50m', 1, 'und', 850);
 addRow('Estante flotante 3 repisas en melamina blanco brillante', 2, 'und', 380);
 addRow('', 1, 'und', 0);
