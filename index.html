@@ -884,11 +884,11 @@ function buildPDF(data){
   doc.setFillColor(26,26,46);
   doc.rect(0,0,W,40,'F');
   doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(232,201,109);
-  doc.text('Santino', pad, 17);
+  doc.text('Home Decor Ayacucho', pad, 17);
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(200,200,220);
   doc.text('Decoración & Muebles de Melamina', pad, 24);
   doc.text('Jr. Manco Cápac 217, Ayacucho, Perú', pad, 30);
-  doc.text('WhatsApp: +51 XXX XXX XXX', pad, 36);
+  doc.text('WhatsApp: +51 921 451 334', pad, 36);
   doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(232,201,109);
   doc.text('COTIZACIÓN', W-pad, 17, {align:'right'});
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(200,200,220);
@@ -998,7 +998,7 @@ function buildPDF(data){
   doc.setDrawColor(200,195,185); doc.setLineWidth(0.2);
   doc.line(pad, y, W-pad, y); y += 5;
   doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(160,155,145);
-  doc.text('Santino — Jr. Manco Cápac 217, Ayacucho, Perú | WhatsApp: +51 XXX XXX XXX', W/2, y, {align:'center'});
+  doc.text('Home Decor Ayacucho — Jr. Manco Cápac 217, Ayacucho, Perú | WhatsApp: +51 921 451 334', W/2, y, {align:'center'});
 
   return doc;
 }
@@ -1012,7 +1012,7 @@ function showToast(msg){
 function generatePDF(){
   const data = getFormData();
   const doc = buildPDF(data);
-  doc.save(data.cotNum + '_Santino.pdf');
+  doc.save(data.cotNum + '_Home Decor Ayacucho.pdf');
   showToast('✓ PDF descargado: ' + data.cotNum);
 }
 
